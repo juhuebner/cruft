@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
+from warnings import warn
 
 import typer
 from git import Repo
@@ -25,7 +26,7 @@ def _pre_sweep(repo: Repo):
     if not gc.garbage:
         return True
 
-    print("gc.garbage: ", gc.garbage)
+    warn("Could not collect {}".format(str(gc.garbage)), ResourceWarning)
     return False
 
 
