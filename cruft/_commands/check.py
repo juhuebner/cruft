@@ -25,7 +25,7 @@ def _pre_sweep(repo: Repo):
     if not gc.garbage:
         return True
 
-    print('gc.garbage: ', gc.garbage)
+    print("gc.garbage: ", gc.garbage)
     return False
 
 
