@@ -15,6 +15,9 @@ from .utils import example
 def _pre_sweep(repo: Repo):
     """Invoke a DIY close() on the repo before repo.close().
 
+    Possibly this helps. It's not clear if it's the cleansing done here, or simply a delay
+    before the real call, which makes this work.
+
     Args:
         repo (Repo): git Repo instance.
 
