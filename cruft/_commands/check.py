@@ -1,5 +1,6 @@
 import gc
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
@@ -59,6 +60,11 @@ def check(
                 "Run `cruft update` to clean this mess up.",
                 fg=typer.colors.RED,
             )
-            # Emergency teardown before closing the tempdir context.
+            # DIY pre-close before closing the repo context.
             _pre_sweep(repo)
+        # A TemporaryDirectory pre-cleanup()
+        with os.scandir(cookiecutter_template_dir) as it:
+            for entry in it:
+                utils.generate._remove_single_path(Path(entry))  # pylint: disable=protected-access
+
         return False

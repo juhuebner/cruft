@@ -121,22 +121,26 @@ def _handle_remove_readonly(func, path, exc):
         # os.chmod(path, stat.S_IWRITE) # WINDOWS only
         func(path)
     else:
-        raise IOError("Could not delete file or directory.")
+        raise IOError("Could not delete file or directory.") # pragma: no cover
+
+
+def _remove_single_path(path: Path):
+    if path.is_dir():
+        rmtree(path, ignore_errors=False, onerror=_handle_remove_readonly)
+        # rmtree(path)
+    elif path.is_file():
+        # path.unlink()
+        try:
+            path.unlink()
+        except PermissionError:
+            path.chmod(stat.S_IWRITE)
+            path.unlink()
+        except Exception as exc: # pragma: no cover
+            raise exc
 
 
 def _remove_paths(root: Path, paths_to_remove: Set[Path]):
     # There is some redundancy here in chmoding dirs and/or files differently.
     for path_to_remove in paths_to_remove:
         path = root / path_to_remove
-        if path.is_dir():
-            rmtree(path, ignore_errors=False, onerror=_handle_remove_readonly)
-            # rmtree(path)
-        elif path.is_file():
-            # path.unlink()
-            try:
-                path.unlink()
-            except PermissionError:
-                path.chmod(stat.S_IWRITE)
-                path.unlink()
-            except Exception as exc:
-                raise exc
+        _remove_single_path(path)
