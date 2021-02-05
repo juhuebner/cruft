@@ -1,13 +1,32 @@
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from time import sleep
 from typing import Optional
+
+from git import Repo
+import gc
 
 import typer
 
 from . import utils
 from .utils import example
+
+def _pre_sweep(repo: Repo):
+    """Invoke a DIY close() on the repo before repo.close().
+
+    Args:
+        repo (Repo): git Repo instance.
+
+    Returns:
+        bool: success if true
+    """
+    repo.git.clear_cache()
+    gc.collect()
+    if not gc.garbage:
+        return True
+
+    print('gc.garbage: ', gc.garbage)
+    return False
 
 
 @example()
@@ -37,5 +56,5 @@ def check(
                 fg=typer.colors.RED,
             )
             # Emergency teardown before closing the tempdir context.
-            sleep(1)
+            _pre_sweep(repo)
         return False
