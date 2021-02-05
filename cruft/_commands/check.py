@@ -1,15 +1,15 @@
+import gc
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
 
-from git import Repo
-import gc
-
 import typer
+from git import Repo
 
 from . import utils
 from .utils import example
+
 
 def _pre_sweep(repo: Repo):
     """Invoke a DIY close() on the repo before repo.close().
