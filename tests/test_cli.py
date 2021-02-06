@@ -329,7 +329,10 @@ def test_diff_skip_git_dir(args, expected_exit_code, cruft_runner, cookiecutter_
         f.write(dedent(skip_section))
     # Alter the git repo.
     run(["git", "add", "--all"], cwd=cookiecutter_dir)
-    run(["git", "commit", "-m", "2nd commit"], cwd=cookiecutter_dir)
+    run(
+        ["git", "commit", "user.name='test'", "user.email='user@test.com'", "-m", "2nd commit"],
+        cwd=cookiecutter_dir,
+    )
     result = cruft_runner(["diff", "--project-dir", cookiecutter_dir.as_posix(), "--exit-code"])
     print(result.stdout)
     assert result.exit_code == expected_exit_code

@@ -113,7 +113,7 @@ def _get_deleted_files(template_dir: Path, project_dir: Path):
     return deleted_paths
 
 
-def _remove_readonly(func, path, _):  # pragma: no cover 4 unix
+def _remove_readonly(func, path, _):  # pragma: no cov_4_nix
     "Clear the readonly bit and reattempt the removal"
     os.chmod(path, stat.S_IWRITE)  # WINDOWS
     func(path)
@@ -130,7 +130,7 @@ def _remove_single_path(path: Path):
         # path.unlink()
         try:
             path.unlink()
-        except PermissionError:  # pragma: no cover 4 unix
+        except PermissionError:  # pragma: no cov_4_nix
             path.chmod(stat.S_IWRITE)
             path.unlink()
         except Exception as exc:  # pragma: no cover

@@ -10,9 +10,9 @@ declare XTRA_OPT=""
 
 if [[ $OSTYPE =~ ^msys|^WIN ]]; then
     # XTRA_OPT="-x --count 10"
-    XTRA_OPT="--count 5"
+    XTRA_OPT="--count 1"
 else
-    XTRA_COV+=("pragma: no cover 4 unix")
+    XTRA_COV+=("pragma: no cov_4_nix")
 fi
 
 # Iterate the string array using for loop. The quotes ensure iteration
