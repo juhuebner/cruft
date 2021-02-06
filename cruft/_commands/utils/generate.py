@@ -115,15 +115,14 @@ def _get_deleted_files(template_dir: Path, project_dir: Path):
 
 
 def _handle_remove_readonly(func, path, exc):
-    os.chmod(path, stat.S_IWRITE) # WINDOWS only
-    func(path)
     excvalue = exc[1]
-    if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
+    if excvalue.errno == errno.EACCES:
+        #    if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
         os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
-        os.chmod(path, stat.S_IWRITE) # WINDOWS only
+        os.chmod(path, stat.S_IWRITE)  # WINDOWS only
         func(path)
     else:
-        raise IOError("Could not delete file or directory.") # pragma: no cover
+        raise IOError("Could not delete file or directory.")  # pragma: no cover
 
 
 def _remove_single_path(path: Path):
@@ -131,7 +130,7 @@ def _remove_single_path(path: Path):
         try:
             rmtree(path, ignore_errors=False, onerror=_handle_remove_readonly)
         except:
-            raise Exception('Failed to remove directory.')
+            raise Exception("Failed to remove directory.")
         # rmtree(path)
     elif path.is_file():
         # path.unlink()
@@ -140,8 +139,8 @@ def _remove_single_path(path: Path):
         except PermissionError:
             path.chmod(stat.S_IWRITE)
             path.unlink()
-        except Exception as exc: # pragma: no cover
-            raise Exception('Failed to remove file.') from exc
+        except Exception as exc:  # pragma: no cover
+            raise Exception("Failed to remove file.") from exc
 
 
 def _remove_paths(root: Path, paths_to_remove: Set[Path]):
