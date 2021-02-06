@@ -1,9 +1,7 @@
-import errno
 import os
 import stat
 from pathlib import Path
 from shutil import move, rmtree
-from tempfile import TemporaryDirectory
 from typing import Optional, Set
 
 from cookiecutter.generate import generate_files
@@ -11,6 +9,7 @@ from git import Repo
 
 from .cookiecutter import CookiecutterContext, generate_cookiecutter_context
 from .cruft import CruftState
+from .iohelper import AltTemporaryDirectory
 
 try:
     import toml  # type: ignore
@@ -74,7 +73,7 @@ def _generate_output(
     # Therefore we have to move the directory content to the expected output_dir.
     # See https://github.com/cookiecutter/cookiecutter/pull/907
     output_dir.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory() as tmpdir_:
+    with AltTemporaryDirectory() as tmpdir_:
         tmpdir = Path(tmpdir_)
 
         # Kindly ask cookiecutter to generate the template
@@ -114,22 +113,28 @@ def _get_deleted_files(template_dir: Path, project_dir: Path):
     return deleted_paths
 
 
-def _handle_remove_readonly(func, path, exc):
-    excvalue = exc[1]
-    if excvalue.errno == errno.EACCES:
-        #    if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
-        os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
-        os.chmod(path, stat.S_IWRITE)  # WINDOWS only
-        func(path)
-    else:
-        raise IOError("Could not delete file or directory.")  # pragma: no cover
+# def _handle_remove_readonly(func, path, exc):
+#     excvalue = exc[1]
+#     if excvalue.errno == errno.EACCES:
+#         #    if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
+#         os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
+#         os.chmod(path, stat.S_IWRITE)  # WINDOWS only
+#         func(path)
+#     else:
+#         raise IOError("Could not delete file or directory.")  # pragma: no cover
+
+
+def _remove_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)  # WINDOWS
+    func(path)
 
 
 def _remove_single_path(path: Path):
     if path.is_dir():
         try:
-            rmtree(path, ignore_errors=False, onerror=_handle_remove_readonly)
-        except Exception:
+            rmtree(path, ignore_errors=False, onerror=_remove_readonly)
+        except Exception:  # pragma: no cover
             raise Exception("Failed to remove directory.")
         # rmtree(path)
     elif path.is_file():

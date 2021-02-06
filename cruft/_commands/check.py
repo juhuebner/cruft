@@ -1,66 +1,12 @@
-import gc
 import json
-import os
-# import shutil
-import stat
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from time import sleep
 from typing import Optional
-from warnings import warn
 
 import typer
-from git import Repo
 
 from . import utils
 from .utils import example
-
-
-def _pre_sweep(repo: Repo):
-    """Invoke a DIY close() on the repo before repo.close().
-
-    Possibly this helps. It's not clear if it's the cleansing done here, or simply a delay
-    before the real call, which makes this work.
-
-    Args:
-        repo (Repo): git Repo instance.
-
-    Returns:
-        bool: success if true
-    """
-    repo.git.clear_cache()
-    gc.collect()
-    if not gc.garbage:
-        return True
-
-    warn("Could not collect {}".format(str(gc.garbage)), ResourceWarning)  # pragma: nocov
-    return False
-
-
-def _remove_readonly(func, path, _):
-    "Clear the readonly bit and reattempt the removal"
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
-
-
-class AltTemporaryDirectory:
-    def __init__(self):
-        self.tmpdir = TemporaryDirectory()
-
-    def __enter__(self):
-        return self.tmpdir.name
-
-    def cleanup(self, cnt=0):
-        if cnt >= 5:
-            raise RuntimeError("Could not delete TemporaryDirectory!")
-        try:
-            self.tmpdir.cleanup()
-        except IOError:
-            sleep(1)
-            self.cleanup(cnt + 1)
-
-    def __exit__(self, exc, value, tb):
-        self.cleanup()
+from .utils.iohelper import AltTemporaryDirectory
 
 
 @example()
@@ -89,19 +35,5 @@ def check(
                 "Run `cruft update` to clean this mess up.",
                 fg=typer.colors.RED,
             )
-            # DIY pre-close before closing the repo context.
-            # _pre_sweep(repo)
-        # A TemporaryDirectory pre-cleanup()
-        # with os.scandir(cookiecutter_template_dir) as it:
-        #     for entry in it:
-        #         utils.generate._remove_single_path(
-        # Path(entry))  # pylint: disable=protected-access
-        # try:
-        #     shutil.rmtree(cookiecutter_template_dir, onerror=_remove_readonly)
-        # except PermissionError:
-        #     sleep(2)
-        #     shutil.rmtree(cookiecutter_template_dir, onerror=_remove_readonly)
-        # except Exception:
-        #     raise
 
         return False
