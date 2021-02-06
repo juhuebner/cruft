@@ -6,6 +6,7 @@ shopt -s nocasematch
 
 # Declare an array (of type string).
 declare -a XTRA_COV=()
+declare XTRA_OPT=""
 
 if [[ $OSTYPE =~ ^msys|^WIN ]]; then
     # XTRA_OPT="-x --count 10"
