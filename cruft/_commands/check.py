@@ -1,11 +1,10 @@
 import gc
 import json
 import os
-import shutil
+# import shutil
 import stat
 from pathlib import Path
-# from tempfile import TemporaryDirectory
-from tempfile import mkdtemp
+from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Optional
 from warnings import warn
@@ -44,6 +43,26 @@ def _remove_readonly(func, path, _):
     func(path)
 
 
+class AltTemporaryDirectory:
+    def __init__(self):
+        self.tmpdir = TemporaryDirectory()
+
+    def __enter__(self):
+        return self.tmpdir.name
+
+    def cleanup(self, cnt=0):
+        if cnt >= 5:
+            raise RuntimeError("Could not delete TemporaryDirectory!")
+        try:
+            self.tmpdir.cleanup()
+        except IOError:
+            sleep(1)
+            self.cleanup(cnt + 1)
+
+    def __exit__(self, exc, value, tb):
+        self.cleanup()
+
+
 @example()
 def check(
     project_dir: Path = Path("."), checkout: Optional[str] = None, strict: bool = True
@@ -52,38 +71,37 @@ def check(
     used to generate this project."""
     cruft_file = utils.cruft.get_cruft_file(project_dir)
     cruft_state = json.loads(cruft_file.read_text())
-    #    with TemporaryDirectory() as cookiecutter_template_dir:
-    cookiecutter_template_dir = mkdtemp()
-    with utils.cookiecutter.get_cookiecutter_repo(
-        cruft_state["template"], Path(cookiecutter_template_dir), checkout
-    ) as repo:
-        last_commit = repo.head.object.hexsha
-        if utils.cruft.is_project_updated(repo, cruft_state["commit"], last_commit, strict):
+    with AltTemporaryDirectory() as cookiecutter_template_dir:
+        with utils.cookiecutter.get_cookiecutter_repo(
+            cruft_state["template"], Path(cookiecutter_template_dir), checkout
+        ) as repo:
+            last_commit = repo.head.object.hexsha
+            if utils.cruft.is_project_updated(repo, cruft_state["commit"], last_commit, strict):
+                typer.secho(
+                    "SUCCESS: Good work! Project's cruft is up to date and "
+                    "as clean as possible :).",
+                    fg=typer.colors.GREEN,
+                )
+                return True
+
             typer.secho(
-                "SUCCESS: Good work! Project's cruft is up to date and "
-                "as clean as possible :).",
-                fg=typer.colors.GREEN,
+                "FAILURE: Project's cruft is out of date! "
+                "Run `cruft update` to clean this mess up.",
+                fg=typer.colors.RED,
             )
-            return True
+            # DIY pre-close before closing the repo context.
+            # _pre_sweep(repo)
+        # A TemporaryDirectory pre-cleanup()
+        # with os.scandir(cookiecutter_template_dir) as it:
+        #     for entry in it:
+        #         utils.generate._remove_single_path(
+        # Path(entry))  # pylint: disable=protected-access
+        # try:
+        #     shutil.rmtree(cookiecutter_template_dir, onerror=_remove_readonly)
+        # except PermissionError:
+        #     sleep(2)
+        #     shutil.rmtree(cookiecutter_template_dir, onerror=_remove_readonly)
+        # except Exception:
+        #     raise
 
-        typer.secho(
-            "FAILURE: Project's cruft is out of date! "
-            "Run `cruft update` to clean this mess up.",
-            fg=typer.colors.RED,
-        )
-        # DIY pre-close before closing the repo context.
-        _pre_sweep(repo)
-    # A TemporaryDirectory pre-cleanup()
-    # with os.scandir(cookiecutter_template_dir) as it:
-    #     for entry in it:
-    #         utils.generate._remove_single_path(
-    # Path(entry))  # pylint: disable=protected-access
-    try:
-        shutil.rmtree(cookiecutter_template_dir, onerror=_remove_readonly)
-    except PermissionError:
-        sleep(2)
-        shutil.rmtree(cookiecutter_template_dir, onerror=_remove_readonly)
-    except Exception:
-        raise
-
-    return False
+        return False
