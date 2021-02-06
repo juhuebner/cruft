@@ -113,18 +113,7 @@ def _get_deleted_files(template_dir: Path, project_dir: Path):
     return deleted_paths
 
 
-# def _handle_remove_readonly(func, path, exc):
-#     excvalue = exc[1]
-#     if excvalue.errno == errno.EACCES:
-#         #    if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
-#         os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
-#         os.chmod(path, stat.S_IWRITE)  # WINDOWS only
-#         func(path)
-#     else:
-#         raise IOError("Could not delete file or directory.")  # pragma: no cover
-
-
-def _remove_readonly(func, path, _):
+def _remove_readonly(func, path, _):  # pragma: no cover 4 unix
     "Clear the readonly bit and reattempt the removal"
     os.chmod(path, stat.S_IWRITE)  # WINDOWS
     func(path)
@@ -141,7 +130,7 @@ def _remove_single_path(path: Path):
         # path.unlink()
         try:
             path.unlink()
-        except PermissionError:
+        except PermissionError:  # pragma: no cover 4 unix
             path.chmod(stat.S_IWRITE)
             path.unlink()
         except Exception as exc:  # pragma: no cover
