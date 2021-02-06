@@ -129,7 +129,7 @@ def _remove_single_path(path: Path):
     if path.is_dir():
         try:
             rmtree(path, ignore_errors=False, onerror=_handle_remove_readonly)
-        except:
+        except Exception:
             raise Exception("Failed to remove directory.")
         # rmtree(path)
     elif path.is_file():
