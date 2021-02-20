@@ -1,7 +1,8 @@
 import os
+from binascii import hexlify
 import stat
 from pathlib import Path
-from shutil import move, rmtree
+from shutil import move, rmtree, copy, copytree
 from typing import Optional, Set
 
 from cookiecutter.generate import generate_files
@@ -38,14 +39,33 @@ def cookiecutter_template(
     context = _generate_output(cruft_state, Path(repo.working_dir), cookiecutter_input, output_dir)
 
     # Get all paths that we are supposed to skip before generating the diff and applying updates
-    skip_paths = _get_skip_paths(cruft_state, pyproject_file)
+    # Get all paths that we want to keep though (subpaths, etc.)
+    skip_paths, no_skip_paths = _get_skip_paths(cruft_state, pyproject_file)
+
+    # Quasi stash and pop the files. TODO This can go into a method one day.
+    # re-derive tmpdir
+    tmpdir = output_dir.parent
+    stash_dir = tmpdir / hexlify(os.urandom(8)).decode('ascii')
+
+    stash_dir.mkdir(exist_ok = True)
+    for path_to_keep in no_skip_paths:
+        print("path_to_keep", output_dir / path_to_keep)
+        if path_to_keep.is_dir():
+            copytree(output_dir / path_to_keep, stash_dir / path_to_keep)
+        elif path_to_keep.is_file():
+            copy(output_dir/ path_to_keep, stash_dir / path_to_keep)
+
     # We also get the list of paths that were deleted from the project
     # directory but were present in the template that the project is linked against
     # This is to avoid introducing changes that won't apply cleanly to the current project.
     if update_deleted_paths:
         deleted_paths.update(_get_deleted_files(output_dir, project_dir))
+
     # We now remove skipped and deleted paths from the project
     _remove_paths(output_dir, skip_paths | deleted_paths)
+
+    # Pop the no_skip files back
+    copytree(stash_dir, output_dir, dirs_exist_ok = True)
 
     return context
 
@@ -96,10 +116,12 @@ def _generate_output(
 
 def _get_skip_paths(cruft_state: CruftState, pyproject_file: Path) -> Set[Path]:
     skip_cruft = cruft_state.get("skip", [])
+    no_skip_cruft = cruft_state.get("no_skip", [])
     if toml and pyproject_file.is_file():
         pyproject_cruft = toml.loads(pyproject_file.read_text()).get("tool", {}).get("cruft", {})
         skip_cruft.extend(pyproject_cruft.get("skip", []))
-    return set(map(Path, skip_cruft))
+        no_skip_cruft.extend(pyproject_cruft.get("no_skip", []))
+    return (set(map(Path, skip_cruft)), set(map(Path, no_skip_cruft)))
 
 
 def _get_deleted_files(template_dir: Path, project_dir: Path):
@@ -114,7 +136,7 @@ def _get_deleted_files(template_dir: Path, project_dir: Path):
 
 
 def _remove_readonly(func, path, _):  # pragma: no cov_4_nix
-    "Clear the readonly bit and reattempt the removal"
+    """Clear the readonly bit and reattempt the removal."""
     os.chmod(path, stat.S_IWRITE)  # WINDOWS
     func(path)
 
