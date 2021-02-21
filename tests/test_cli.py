@@ -324,7 +324,6 @@ def test_diff_skip_git_dir(args, expected_exit_code, cruft_runner, cookiecutter_
     skip_section = """
         [tool.cruft]
         skip = [".git"]
-        no_skip = [".git/hooks"]
         """
     with (cookiecutter_dir / "pyproject.toml").open("w") as f:
         f.write(dedent(skip_section))
@@ -334,4 +333,4 @@ def test_diff_skip_git_dir(args, expected_exit_code, cruft_runner, cookiecutter_
     result = cruft_runner(["diff", "--project-dir", cookiecutter_dir.as_posix(), "--exit-code"])
     print(result.stdout)
     assert result.exit_code == expected_exit_code
-    assert ".git/object" not in result.stdout
+    assert ".git" not in result.stdout
