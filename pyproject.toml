@@ -2,18 +2,21 @@
 name = "cruft"
 version = "2.6.1-alpha.4"
 description = "Allows you to maintain all the necessary cruft for packaging and building projects separate from the code you intentionally write. Built on-top of CookieCutter."
-authors = ["Timothy Crosley <timothy.crosley@gmail.com>", "Sambhav Kothari <sambhavs.email@gmail.com>"]
+authors = [
+    "Timothy Crosley <timothy.crosley@gmail.com>",
+    "Sambhav Kothari <sambhavs.email@gmail.com>",
+]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-cookiecutter = {url = "https://github.com/juhuebner/cookiecutter/archive/2.0a0.dev0.tar.gz"}
+cookiecutter = { url = "https://github.com/juhuebner/cookiecutter/archive/2.0a0.dev0.tar.gz" }
 gitpython = "^3.0"
-toml = { version = "^0.10", optional = true }
+toml = { version = "^0.10", optional = false }
 typer = "^0.3.1"
 click = "^7.1.2"
-examples = {version = "^1.0.2", optional = true}
+examples = { version = "^1.0.2", optional = true }
 
 [tool.poetry.extras]
 pyproject = ["toml"]
@@ -25,7 +28,7 @@ bandit = "^1.6"
 safety = "^1.8"
 isort = "^5.3"
 flake8-bugbear = "^19.8"
-black = {version = "^18.3-alpha.0", allow-prereleases = true}
+black = { version = "^18.3-alpha.0", allow-prereleases = true }
 mypy = "^0.730.0"
 ipython = "^7.7"
 pytest = "^5.0"
@@ -44,7 +47,7 @@ cruft = "cruft._cli:app"
 favicon = "art/logo.png"
 logo = "art/logo.png"
 name = "material"
-palette = {primary = "orange", accent = "cyan"}
+palette = { primary = "orange", accent = "cyan" }
 
 [tool.cruft]
 skip = ["cruft/__init__.py", "tests"]
